@@ -50,7 +50,9 @@
       font-size:24px;
     }
     h1{margin:0;font-size:24px;line-height:1.1}
-    p.lead{margin:6px 0 0;color:var(--muted);font-size:14px}
+    
+    /* Removed p.lead as requested */
+    p.disclaimer{margin:6px 0 0;color:var(--muted);font-size:14px} 
 
     .grid{
       display:grid;
@@ -129,7 +131,7 @@
       <div class="logo">A</div>
       <div>
         <h1>LatAm Nearshore ROI Calculator</h1>
-        <p class="lead">Auto-filled LatAm assumptions so your clients can focus on savings.</p>
+        <p class="disclaimer">Salaries are an approximation based on current market data for Mid to Senior roles (USD).</p>
       </div>
     </header>
 
@@ -146,11 +148,12 @@
           <option value="SDR">SDR</option>
           <option value="PM / PMM">PM / PMM</option>
           <option value="Customer Support">Customer Support</option>
+          <option value="Web3 Engineer">Web3 Engineer</option>
         </select>
 
         <div style="display:flex;gap:16px;margin-top:16px">
           <div style="flex:1">
-            <label for="usSalary">US salary (USD)</label>
+            <label for="usSalary">US Annual salary (USD)</label>
             <input id="usSalary" type="number" value="140000" />
           </div>
           <div style="width:130px">
@@ -161,22 +164,14 @@
 
         <div style="display:flex;gap:16px;margin-top:16px">
           <div style="flex:1">
-            <label for="latamSalary">LatAm salary (auto-filled, editable)</label>
+            <label for="latamSalary">LatAm Annual salary (auto-filled, editable)</label>
             <input id="latamSalary" type="number" data-manual-edit="false" />
-            <div class="small" style="margin-top:8px">This updates automatically when you change the **Role**, unless you manually edit it.</div>
+            <div class="small" style="margin-top:8px">This figure is an industry average based on the selected Role.</div>
           </div>
-          <div style="width:170px">
-            <label for="usBenefits">US benefits %</label>
-            <input id="usBenefits" type="number" value="25" />
           </div>
-        </div>
-
+        
         <div class="adv" id="advancedPanel" style="display:none">
           <div style="display:flex;gap:16px">
-            <div style="flex:1">
-              <label for="latamBenefits">LatAm benefits (%)</label>
-              <input id="latamBenefits" type="number" value="20" />
-            </div>
             <div style="flex:1">
               <label for="latamTime">LatAm time-to-hire (weeks)</label>
               <input id="latamTime" type="number" value="3" />
@@ -186,9 +181,8 @@
               <input id="usTime" type="number" value="6" />
             </div>
           </div>
-          <div class="note">These values are industry assumptions you can fine-tune for better accuracy.</div>
+          <div class="note">Time-to-hire directly impacts the Cost of Vacancy (CoV) savings.</div>
         </div>
-
         <div style="margin-top:18px;display:flex;align-items:center;gap:10px">
           <button id="advToggle" class="toggle">Show advanced</button>
         </div>
@@ -223,18 +217,43 @@
 
   <script>
     /**********************
-     * LatAm DEFAULT salary table (Market Research)
+     * LatAm DEFAULT salary table (Market Research + Company Fee)
+     * (Mid to Sr Monthly Range converted to Annual Avg + 25% Fee)
      **********************/
     const LATAM_DEFAULTS = {
-      "Software Engineer": 45000,
-      "Frontend / React": 40000,
-      "Backend / Python / Node": 45000,
+      // Monthly Range -> Annual Average -> + 25% Fee
+      // Midpoint factor = ((Min + Max) / 2) * 12 * 1.25
+      
+      // Backend (3000-4500) -> 3750 * 12 * 1.25 = 56250
+      "Backend / Python / Node": 56250,
+      
+      // Frontend (2500-3500) -> 3000 * 12 * 1.25 = 45000
+      "Frontend / React": 45000,
+      
+      // DevOps (3500-4500) -> 4000 * 12 * 1.25 = 60000
       "DevOps": 60000,
-      "AI / ML Engineer": 60000,
-      "Designer (UI/UX)": 28000,
-      "SDR": 16000,
-      "PM / PMM": 45000,
-      "Customer Support": 15000
+      
+      // Designer (3000-4500) -> 3750 * 12 * 1.25 = 56250
+      "Designer (UI/UX)": 56250,
+
+      // Web3 Engineer (5500-8500) -> 7000 * 12 * 1.25 = 105000
+      "Web3 Engineer": 105000, 
+      
+      // APPROXIMATED for remaining roles:
+      // Software Engineer (Generalizing Backend/Frontend midpoint)
+      "Software Engineer": 50000, 
+      
+      // AI / ML Engineer (A bit higher than DevOps)
+      "AI / ML Engineer": 75000, 
+      
+      // SDR (Lower-end sales support)
+      "SDR": 25000, 
+      
+      // PM / PMM (Management/Strategy)
+      "PM / PMM": 60000, 
+      
+      // Customer Support (Entry/Mid)
+      "Customer Support": 20000
     };
 
     // ELEMENTS
@@ -242,8 +261,8 @@
     const usSalaryEl = document.getElementById("usSalary");
     const hiresEl = document.getElementById("hires");
     const latamSalaryEl = document.getElementById("latamSalary");
-    const usBenefitsEl = document.getElementById("usBenefits");
-    const latamBenefitsEl = document.getElementById("latamBenefits");
+    
+    // Removed usBenefitsEl and latamBenefitsEl
     const latamTimeEl = document.getElementById("latamTime");
     const usTimeEl = document.getElementById("usTime");
     const advToggle = document.getElementById("advToggle");
@@ -310,11 +329,9 @@
     const usd = n => "$" + Math.round(n).toLocaleString();
 
     /**********************************
-     * FIX: LatAm Salary Auto-Fill Logic
-     * It only changes if the ROLE changes AND the user hasn't edited it.
+     * LatAm Salary Auto-Fill Logic
     **********************************/
 
-    // 1. Function to update LatAm salary based on role
     function updateLatamSalaryBasedOnRole(){
       const role = roleEl.value;
       const defaultValue = LATAM_DEFAULTS[role];
@@ -327,13 +344,13 @@
       }
     }
     
-    // 2. Event listener for manual edit (set flag)
+    // Event listener for manual edit (set flag)
     latamSalaryEl.addEventListener("input",()=>{
       latamSalaryEl.setAttribute("data-manual-edit","true");
       calculate();
     });
 
-    // 3. Event listener for role change (check flag and update)
+    // Event listener for role change (check flag and update)
     roleEl.addEventListener("change",()=>{
         updateLatamSalaryBasedOnRole();
         calculate();
@@ -349,15 +366,17 @@
       const usSalary = Number(usSalaryEl.value || 0);
       const latamSalary = Number(latamSalaryEl.value || 0);
 
-      const usBenefits = Number(usBenefitsEl.value || 25) / 100;
-      const latamBenefits = Number(latamBenefitsEl.value || 20) / 100;
+      // Benefits/Taxes are now ZERO as per request (most contracts without benefits)
+      const usMultiplier = 1; 
+      const latamMultiplier = 1; 
 
       const usTime = Number(usTimeEl.value || 6);
       const latamTime = Number(latamTimeEl.value || 3);
 
       // Annual Savings (Direct Cost)
-      const totalUS = (usSalary * (1 + usBenefits)) * hires;
-      const totalLatam = (latamSalary * (1 + latamBenefits)) * hires;
+      // Total Cost = Annual Salary * Multiplier * # Hires
+      const totalUS = (usSalary * usMultiplier) * hires;
+      const totalLatam = (latamSalary * latamMultiplier) * hires;
       const annualSavings = totalUS - totalLatam;
 
       // Cost of Vacancy (CoV) Savings (Indirect Cost)
@@ -389,7 +408,7 @@
     **********************************/
     
     // Listeners for all inputs that trigger a RECALCULATION
-    [usSalaryEl, hiresEl, usBenefitsEl, latamBenefitsEl, latamTimeEl, usTimeEl]
+    [usSalaryEl, hiresEl, latamTimeEl, usTimeEl]
       .forEach(el=>el.addEventListener("input",calculate));
 
     // ADVANCED PANEL Toggle
@@ -406,7 +425,6 @@
     **********************************/
     (function init(){
       // Set initial state for advanced inputs
-      latamBenefitsEl.value = 20;
       latamTimeEl.value = 3;
       usTimeEl.value = 6;
       

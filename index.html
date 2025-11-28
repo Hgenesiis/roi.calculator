@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>LatAm Nearshore ROI — Calculator</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root{
+      /* Company Yellow Accent */
+      --yellow:#FFE91F; 
+      --black:#0b0b0b;
+      --muted:#6b7280;
+      --card:#ffffff;
+      /* Off-white background */
+      --bg:#f8f9fa; 
+      --glass: rgba(11,11,11,0.04);
+      --radius:16px; /* Slightly larger radius for modern look */
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background:var(--bg);
+      color:var(--black);
+      padding:32px 16px; /* Adjusted padding */
+    }
+
+    .wrap{
+      max-width:980px;
+      margin:20px auto;
+      background:var(--card);
+      border-radius:var(--radius);
+      padding:32px;
+      box-shadow:0 12px 40px rgba(11,11,11,0.08); /* Stronger shadow */
+      border:1px solid rgba(11,11,11,0.06);
+    }
+
+    header{display:flex;align-items:center;gap:16px}
+    .logo{
+      width:56px;height:56px;border-radius:12px;background:var(--yellow);
+      display:flex;align-items:center;justify-content:center;
+      font-weight:800;color:var(--black);
+      box-shadow:0 6px 16px rgba(11,11,11,0.1);
+      flex:0 0 56px;
+      font-size:24px;
+    }
+    h1{margin:0;font-size:24px;line-height:1.1}
+    p.lead{margin:6px 0 0;color:var(--muted);font-size:14px}
+
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(12,1fr);
+      gap:24px;
+      margin-top:24px;
+    }
+
+    .card{
+      background:linear-gradient(180deg,#ffffff,#fafafa);
+      padding:24px;
+      border-radius:var(--radius);
+      border:1px solid var(--glass);
+      transition: box-shadow 0.2s;
+    }
+    .card:focus-within{
+      box-shadow:0 0 0 3px var(--yellow), 0 12px 40px rgba(11,11,11,0.08);
+    }
+
+    .col-7{grid-column:span 7}
+    .col-5{grid-column:span 5}
+    @media (max-width:880px){.col-7,.col-5{grid-column:span 12}}
+
+    label{display:block;font-weight:600;margin-bottom:6px;font-size:14px}
+    input[type="text"], input[type="number"], select {
+      width:100%;padding:12px 14px;border-radius:10px;border:1px solid #e6e7eb;font-size:15px;
+      background:white;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus, input[type="number"]:focus, select:focus {
+        border-color: var(--yellow);
+        outline: none;
+    }
+
+    .small{font-size:13px;color:var(--muted)}
+
+    .results{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:16px;margin-top:20px;
+    }
+    @media (max-width:880px){.results{grid-template-columns:1fr}}
+
+    .result{
+      background:#fff;padding:16px;border-radius:12px;border:1px solid var(--glass);
+      text-align:left;
+      transition: border-color 0.2s;
+    }
+    .result h4{margin:0;font-size:13px;color:var(--muted)}
+    .result .big{
+      margin-top:8px;
+      font-size:24px;
+      font-weight:700;
+      color:var(--black);
+    }
+    
+    /* Highlight Savings */
+    .result:nth-child(1) .big, .result:nth-child(2) .big {color: var(--yellow);}
+    .result:nth-child(3) {background: var(--yellow);}
+    .result:nth-child(3) .big, .result:nth-child(3) h4 {color: var(--black);}
+
+    .adv{margin-top:16px;padding:16px;border-radius:12px;border:1px dashed rgba(11,11,11,0.1);background:#fcfcfc}
+    .toggle{font-size:14px;color:var(--muted);cursor:pointer;text-decoration:underline;border:none;background:none;padding:0}
+
+    .chartWrap{
+      margin-top:24px;padding:16px;border-radius:12px;background:#fff;border:1px solid var(--glass)
+    }
+
+    .note{font-size:12px;color:var(--muted);margin-top:8px;padding-left:14px;}
+  </style>
+</head>
+<body>
+
+  <div class="wrap">
+    <header>
+      <div class="logo">A</div>
+      <div>
+        <h1>LatAm Nearshore ROI Calculator</h1>
+        <p class="lead">Auto-filled LatAm assumptions so your clients can focus on savings.</p>
+      </div>
+    </header>
+
+    <div class="grid">
+      <div class="col-7 card">
+        <label for="role">Role</label>
+        <select id="role">
+          <option value="Software Engineer">Software Engineer</option>
+          <option value="Frontend / React">Frontend / React</option>
+          <option value="Backend / Python / Node">Backend / Python / Node</option>
+          <option value="DevOps">DevOps</option>
+          <option value="AI / ML Engineer">AI / ML Engineer</option>
+          <option value="Designer (UI/UX)">Designer (UI/UX)</option>
+          <option value="SDR">SDR</option>
+          <option value="PM / PMM">PM / PMM</option>
+          <option value="Customer Support">Customer Support</option>
+        </select>
+
+        <div style="display:flex;gap:16px;margin-top:16px">
+          <div style="flex:1">
+            <label for="usSalary">US salary (USD)</label>
+            <input id="usSalary" type="number" value="140000" />
+          </div>
+          <div style="width:130px">
+            <label for="hires"># hires</label>
+            <input id="hires" type="number" value="1" />
+          </div>
+        </div>
+
+        <div style="display:flex;gap:16px;margin-top:16px">
+          <div style="flex:1">
+            <label for="latamSalary">LatAm salary (auto-filled, editable)</label>
+            <input id="latamSalary" type="number" data-manual-edit="false" />
+            <div class="small" style="margin-top:8px">This updates automatically when you change the **Role**, unless you manually edit it.</div>
+          </div>
+          <div style="width:170px">
+            <label for="usBenefits">US benefits %</label>
+            <input id="usBenefits" type="number" value="25" />
+          </div>
+        </div>
+
+        <div class="adv" id="advancedPanel" style="display:none">
+          <div style="display:flex;gap:16px">
+            <div style="flex:1">
+              <label for="latamBenefits">LatAm benefits (%)</label>
+              <input id="latamBenefits" type="number" value="20" />
+            </div>
+            <div style="flex:1">
+              <label for="latamTime">LatAm time-to-hire (weeks)</label>
+              <input id="latamTime" type="number" value="3" />
+            </div>
+            <div style="flex:1">
+              <label for="usTime">US time-to-hire (weeks)</label>
+              <input id="usTime" type="number" value="6" />
+            </div>
+          </div>
+          <div class="note">These values are industry assumptions you can fine-tune for better accuracy.</div>
+        </div>
+
+        <div style="margin-top:18px;display:flex;align-items:center;gap:10px">
+          <button id="advToggle" class="toggle">Show advanced</button>
+        </div>
+      </div>
+
+      <div class="col-5 card">
+        <h3 style="margin:0;font-size:18px;font-weight:700">Client Savings Breakdown</h3>
+        <div class="results">
+          <div class="result">
+            <h4>Annual Salary Savings</h4>
+            <div class="big" id="annualSavings">$0</div>
+          </div>
+
+          <div class="result">
+            <h4>Cost of Vacancy Saved</h4>
+            <div class="big" id="covSaved">$0</div>
+          </div>
+
+          <div class="result">
+            <h4>ROI %</h4>
+            <div class="big" id="roiPct">0%</div>
+          </div>
+        </div>
+
+        <div class="chartWrap">
+          <canvas id="mainChart" height="150"></canvas> 
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**********************
+     * LatAm DEFAULT salary table (Market Research)
+     **********************/
+    const LATAM_DEFAULTS = {
+      "Software Engineer": 45000,
+      "Frontend / React": 40000,
+      "Backend / Python / Node": 45000,
+      "DevOps": 60000,
+      "AI / ML Engineer": 60000,
+      "Designer (UI/UX)": 28000,
+      "SDR": 16000,
+      "PM / PMM": 45000,
+      "Customer Support": 15000
+    };
+
+    // ELEMENTS
+    const roleEl = document.getElementById("role");
+    const usSalaryEl = document.getElementById("usSalary");
+    const hiresEl = document.getElementById("hires");
+    const latamSalaryEl = document.getElementById("latamSalary");
+    const usBenefitsEl = document.getElementById("usBenefits");
+    const latamBenefitsEl = document.getElementById("latamBenefits");
+    const latamTimeEl = document.getElementById("latamTime");
+    const usTimeEl = document.getElementById("usTime");
+    const advToggle = document.getElementById("advToggle");
+    const advancedPanel = document.getElementById("advancedPanel");
+
+    const annualSavingsEl = document.getElementById("annualSavings");
+    const covSavedEl = document.getElementById("covSaved");
+    const roiPctEl = document.getElementById("roiPct");
+
+    // CHART SETUP
+    const ctx = document.getElementById("mainChart").getContext("2d");
+    let chart;
+
+    function initChart(a=0,b=0,c=0){
+      if(chart) chart.destroy();
+      chart = new Chart(ctx,{
+        type:"bar",
+        data:{
+          labels:["Annual Salary Savings","CoV Saved","Total LatAm Cost"],
+          datasets:[{
+            data:[a,b,c],
+            // Use company yellow and a neutral grey
+            backgroundColor:["#FFE91F","#FFE04A","#6B7280"], 
+            borderRadius:8,
+            borderSkipped: false
+          }]
+        },
+        options:{
+          responsive:true,
+          maintainAspectRatio: false,
+          plugins:{
+            legend:{display:false},
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        let label = context.dataset.label || '';
+                        if (label) {
+                            label += ': ';
+                        }
+                        if (context.parsed.y !== null) {
+                            label += '$' + Math.round(context.parsed.y).toLocaleString();
+                        }
+                        return label;
+                    }
+                }
+            }
+          },
+          scales:{
+              y:{
+                  beginAtZero:true,
+                  ticks: {
+                      // Format Y-axis labels as currency
+                      callback: function(value, index, values) {
+                          return '$' + value.toLocaleString();
+                      }
+                  }
+              }
+          }
+        }
+      });
+    }
+
+    // FORMATTING
+    const usd = n => "$" + Math.round(n).toLocaleString();
+
+    /**********************************
+     * FIX: LatAm Salary Auto-Fill Logic
+     * It only changes if the ROLE changes AND the user hasn't edited it.
+    **********************************/
+
+    // 1. Function to update LatAm salary based on role
+    function updateLatamSalaryBasedOnRole(){
+      const role = roleEl.value;
+      const defaultValue = LATAM_DEFAULTS[role];
+
+      const isManual = latamSalaryEl.getAttribute("data-manual-edit") === "true";
+
+      // Only auto-fill if the user has NOT manually set a value
+      if (!isManual) {
+        latamSalaryEl.value = defaultValue;
+      }
+    }
+    
+    // 2. Event listener for manual edit (set flag)
+    latamSalaryEl.addEventListener("input",()=>{
+      latamSalaryEl.setAttribute("data-manual-edit","true");
+      calculate();
+    });
+
+    // 3. Event listener for role change (check flag and update)
+    roleEl.addEventListener("change",()=>{
+        updateLatamSalaryBasedOnRole();
+        calculate();
+    });
+
+    /**********************************
+     CALCULATE (Core Math)
+    **********************************/
+    function calculate(){
+      
+      // Get values
+      const hires = Number(hiresEl.value || 1);
+      const usSalary = Number(usSalaryEl.value || 0);
+      const latamSalary = Number(latamSalaryEl.value || 0);
+
+      const usBenefits = Number(usBenefitsEl.value || 25) / 100;
+      const latamBenefits = Number(latamBenefitsEl.value || 20) / 100;
+
+      const usTime = Number(usTimeEl.value || 6);
+      const latamTime = Number(latamTimeEl.value || 3);
+
+      // Annual Savings (Direct Cost)
+      const totalUS = (usSalary * (1 + usBenefits)) * hires;
+      const totalLatam = (latamSalary * (1 + latamBenefits)) * hires;
+      const annualSavings = totalUS - totalLatam;
+
+      // Cost of Vacancy (CoV) Savings (Indirect Cost)
+      const revenueMultiplier = 2; // Assumption: A hire generates 2x their salary in revenue
+      const workingDays = 250; 
+
+      const revenueImpact = usSalary * revenueMultiplier;
+      const dailyCov = revenueImpact / workingDays;
+      const daysSaved = (usTime - latamTime) * 5; // 5 days per week
+      const covSaved = daysSaved * dailyCov * hires;
+
+      // Total ROI
+      const totalCost = totalLatam;
+      const totalBenefit = annualSavings + covSaved;
+      
+      const roi = totalCost > 0 ? (totalBenefit / totalCost) * 100 : 0;
+
+      // Update Results
+      annualSavingsEl.textContent = usd(annualSavings);
+      covSavedEl.textContent = usd(covSaved);
+      roiPctEl.textContent = roi.toFixed(1) + "%";
+
+      // Update Chart (Annual Savings, CoV Saved, Total LatAm Cost)
+      initChart(annualSavings, covSaved, totalCost);
+    }
+
+    /**********************************
+     EVENTS
+    **********************************/
+    
+    // Listeners for all inputs that trigger a RECALCULATION
+    [usSalaryEl, hiresEl, usBenefitsEl, latamBenefitsEl, latamTimeEl, usTimeEl]
+      .forEach(el=>el.addEventListener("input",calculate));
+
+    // ADVANCED PANEL Toggle
+    advToggle.addEventListener("click",()=>{
+      const isHidden = advancedPanel.style.display==="none";
+      advancedPanel.style.display = isHidden ? "block" : "none";
+      advToggle.textContent = isHidden
+        ? "Hide advanced"
+        : "Show advanced";
+    });
+
+    /**********************************
+     INIT
+    **********************************/
+    (function init(){
+      // Set initial state for advanced inputs
+      latamBenefitsEl.value = 20;
+      latamTimeEl.value = 3;
+      usTimeEl.value = 6;
+      
+      // Initial auto-fill of the LatAm salary
+      updateLatamSalaryBasedOnRole(); 
+
+      // Initial chart and calculation
+      initChart(0,0,0);
+      calculate();
+    })();
+  </script>
+
+</body>
+</html>

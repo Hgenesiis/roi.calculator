@@ -1,253 +1,262 @@
-{\rtf1\ansi\ansicpg1252\cocoartf2865
-\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
-{\colortbl;\red255\green255\blue255;}
-{\*\expandedcolortbl;;}
-\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
-\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
-
-\f0\fs24 \cf0 <!DOCTYPE html>\
-<html lang="en">\
-<head>\
-<meta charset="UTF-8" />\
-<title>LatAm Nearshore ROI Calculator</title>\
-<meta name="viewport" content="width=device-width, initial-scale=1" />\
-\
-<!-- Chart.js -->\
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>\
-\
-<style>\
-  body \{\
-    font-family: Arial, sans-serif;\
-    background: #f7f7f7;\
-    padding: 20px;\
-    margin: 0;\
-  \}\
-\
-  .container \{\
-    max-width: 900px;\
-    margin: auto;\
-    background: white;\
-    padding: 30px;\
-    border-radius: 16px;\
-    box-shadow: 0 0 20px rgba(0,0,0,0.08);\
-  \}\
-\
-  h1 \{\
-    margin-top: 0;\
-    font-size: 26px;\
-    font-weight: bold;\
-  \}\
-\
-  label \{\
-    font-size: 14px;\
-    font-weight: 600;\
-    display: block;\
-    margin-top: 12px;\
-  \}\
-\
-  input \{\
-    width: 100%;\
-    padding: 10px;\
-    margin-top: 5px;\
-    border-radius: 8px;\
-    border: 1px solid #ccc;\
-    font-size: 14px;\
-  \}\
-\
-  .grid \{\
-    display: grid;\
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));\
-    gap: 18px;\
-    margin-top: 20px;\
-  \}\
-\
-  .card \{\
-    border: 1px solid #eee;\
-    padding: 16px;\
-    border-radius: 12px;\
-    background: #fafafa;\
-  \}\
-\
-  .value \{\
-    font-size: 22px;\
-    font-weight: bold;\
-    margin-top: 5px;\
-  \}\
-\
-  button \{\
-    padding: 12px 20px;\
-    border-radius: 10px;\
-    border: none;\
-    background: black;\
-    color: white;\
-    cursor: pointer;\
-    font-size: 14px;\
-  \}\
-\
-  button:hover \{\
-    opacity: 0.8;\
-  \}\
-\
-  .flex \{\
-    display: flex;\
-    gap: 14px;\
-    margin-top: 20px;\
-  \}\
-</style>\
-</head>\
-\
-<body>\
-<div class="container">\
-  <h1>LatAm Nearshore ROI Calculator</h1>\
-  <p>Instantly estimate cost savings, cost-of-vacancy avoided, and ROI using nearshore talent from LatAm.</p>\
-\
-  <!-- INPUTS -->\
-  <div class="grid">\
-    <div>\
-      <label>Role</label>\
-      <input id="role" value="Software Engineer" />\
-      \
-      <label>Number of hires</label>\
-      <input id="numHires" type="number" value="1" />\
-      \
-      <label>US salary (USD)</label>\
-      <input id="usSalary" type="number" value="140000" />\
-\
-      <label>LatAm salary (USD)</label>\
-      <input id="latamSalary" type="number" value="40000" />\
-    </div>\
-\
-    <div>\
-      <label>US benefits (% of salary)</label>\
-      <input id="usBenefits" type="number" value="25" />\
-\
-      <label>LatAm benefits (% of salary)</label>\
-      <input id="latamBenefits" type="number" value="20" />\
-\
-      <label>US time-to-hire (weeks)</label>\
-      <input id="usTTH" type="number" value="6" />\
-\
-      <label>LatAm time-to-hire (weeks)</label>\
-      <input id="latamTTH" type="number" value="3" />\
-    </div>\
-\
-    <div>\
-      <label>Annual revenue impact per role (used for CoV)</label>\
-      <input id="revenueImpact" type="number" value="300000" />\
-    </div>\
-  </div>\
-\
-  <!-- RESULTS -->\
-  <div class="grid" style="margin-top: 30px;">\
-    <div class="card">\
-      <div>Annual Savings (Total)</div>\
-      <div class="value" id="annualSavings">$0</div>\
-    </div>\
-\
-    <div class="card">\
-      <div>Cost of Vacancy Saved</div>\
-      <div class="value" id="covSaved">$0</div>\
-    </div>\
-\
-    <div class="card">\
-      <div>ROI (%)</div>\
-      <div class="value" id="roi">0%</div>\
-    </div>\
-  </div>\
-\
-  <!-- CHART -->\
-  <div style="margin-top: 40px;">\
-    <canvas id="chart" height="150"></canvas>\
-  </div>\
-\
-  <!-- BUTTONS -->\
-  <div class="flex">\
-    <button onclick="downloadCSV()">Download CSV</button>\
-    <button onclick="window.print()">Print</button>\
-  </div>\
-</div>\
-\
-<script>\
-function calc() \{\
-  const role = document.getElementById('role').value;\
-  const n = Number(document.getElementById('numHires').value);\
-\
-  const usSalary = Number(document.getElementById('usSalary').value);\
-  const latamSalary = Number(document.getElementById('latamSalary').value);\
-\
-  const usB = (Number(document.getElementById('usBenefits').value) / 100) * usSalary;\
-  const laB = (Number(document.getElementById('latamBenefits').value) / 100) * latamSalary;\
-\
-  const usTTH = Number(document.getElementById('usTTH').value);\
-  const latamTTH = Number(document.getElementById('latamTTH').value);\
-\
-  const revenueImpact = Number(document.getElementById('revenueImpact').value);\
-\
-  const annualSavingsPerRole = (usSalary + usB) - (latamSalary + laB);\
-  const annualSavings = annualSavingsPerRole * n;\
-\
-  const dailyCoV = revenueImpact / 250;\
-  const timeSavedDays = Math.max(0, (usTTH - latamTTH) * 5);\
-  const covSaved = dailyCoV * timeSavedDays * n;\
-\
-  const latamTotalCost = (latamSalary + laB) * n;\
-  const roi = latamTotalCost > 0 ? ((annualSavings + covSaved) / latamTotalCost) * 100 : 0;\
-\
-  document.getElementById('annualSavings').innerText = "$" + annualSavings.toLocaleString();\
-  document.getElementById('covSaved').innerText = "$" + covSaved.toLocaleString();\
-  document.getElementById('roi').innerText = roi.toFixed(1) + "%";\
-\
-  updateChart(annualSavings, covSaved, latamTotalCost);\
-\}\
-\
-let chart;\
-\
-function updateChart(a, b, c) \{\
-  const ctx = document.getElementById('chart').getContext('2d');\
-  if (chart) chart.destroy();\
-\
-  chart = new Chart(ctx, \{\
-    type: 'bar',\
-    data: \{\
-      labels: ['Annual Savings', 'CoV Saved', 'LatAm Cost'],\
-      datasets: [\{\
-        label: 'USD',\
-        data: [a, b, c],\
-        backgroundColor: ['#4f46e5', '#10b981', '#6b7280']\
-      \}]\
-    \},\
-    options: \{\
-      responsive: true,\
-      scales: \{\
-        y: \{ beginAtZero: true \}\
-      \}\
-    \}\
-  \});\
-\}\
-\
-function downloadCSV() \{\
-  const rows = [\
-    ["Annual Savings", document.getElementById('annualSavings').innerText],\
-    ["CoV Saved", document.getElementById('covSaved').innerText],\
-    ["ROI", document.getElementById('roi').innerText]\
-  ];\
-\
-  let csv = rows.map(r => r.join(",")).join("\\n");\
-  const blob = new Blob([csv], \{ type: "text/csv" \});\
-  const url = window.URL.createObjectURL(blob);\
-  const a = document.createElement("a");\
-  a.href = url;\
-  a.download = "roi_results.csv";\
-  a.click();\
-  window.URL.revokeObjectURL(url);\
-\}\
-\
-document.querySelectorAll("input").forEach(i => \{\
-  i.addEventListener("input", calc);\
-\});\
-\
-calc();\
-</script>\
-</body>\
-</html>\
-}
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2685.1">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Times; -webkit-text-stroke: #000000}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Times; -webkit-text-stroke: #000000; min-height: 14.0px}
+    span.s1 {font-kerning: none}
+  </style>
+</head>
+<body>
+<p class="p1"><span class="s1">&lt;!DOCTYPE html&gt;</span></p>
+<p class="p1"><span class="s1">&lt;html lang="en"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;head&gt;</span></p>
+<p class="p1"><span class="s1">&lt;meta charset="UTF-8" /&gt;</span></p>
+<p class="p1"><span class="s1">&lt;title&gt;LatAm Nearshore ROI Calculator&lt;/title&gt;</span></p>
+<p class="p1"><span class="s1">&lt;meta name="viewport" content="width=device-width, initial-scale=1" /&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">&lt;!-- Chart.js --&gt;</span></p>
+<p class="p1"><span class="s1">&lt;script src="https://cdn.jsdelivr.net/npm/chart.js"&gt;&lt;/script&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">&lt;style&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>body {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>font-family: Arial, sans-serif;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>background: #f7f7f7;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>padding: 20px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>margin: 0;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.container {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>max-width: 900px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>margin: auto;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>background: white;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>padding: 30px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border-radius: 16px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>box-shadow: 0 0 20px rgba(0,0,0,0.08);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>h1 {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>margin-top: 0;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>font-size: 26px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>font-weight: bold;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>label {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>font-size: 14px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>font-weight: 600;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>display: block;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>margin-top: 12px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>input {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>width: 100%;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>padding: 10px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>margin-top: 5px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border-radius: 8px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border: 1px solid #ccc;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>font-size: 14px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.grid {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>display: grid;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>gap: 18px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>margin-top: 20px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.card {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border: 1px solid #eee;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>padding: 16px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border-radius: 12px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>background: #fafafa;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.value {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>font-size: 22px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>font-weight: bold;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>margin-top: 5px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>button {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>padding: 12px 20px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border-radius: 10px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border: none;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>background: black;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>color: white;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>cursor: pointer;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>font-size: 14px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>button:hover {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>opacity: 0.8;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.flex {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>display: flex;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>gap: 14px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>margin-top: 20px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p1"><span class="s1">&lt;/style&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/head&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">&lt;body&gt;</span></p>
+<p class="p1"><span class="s1">&lt;div class="container"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;h1&gt;LatAm Nearshore ROI Calculator&lt;/h1&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;p&gt;Instantly estimate cost savings, cost-of-vacancy avoided, and ROI using nearshore talent from LatAm.&lt;/p&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;!-- INPUTS --&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;div class="grid"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;label&gt;Role&lt;/label&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;input id="role" value="Software Engineer" /&gt;</span></p>
+<p class="p2"><span class="s1"><span class="Apple-converted-space">      </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;label&gt;Number of hires&lt;/label&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;input id="numHires" type="number" value="1" /&gt;</span></p>
+<p class="p2"><span class="s1"><span class="Apple-converted-space">      </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;label&gt;US salary (USD)&lt;/label&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;input id="usSalary" type="number" value="140000" /&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;label&gt;LatAm salary (USD)&lt;/label&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;input id="latamSalary" type="number" value="40000" /&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;label&gt;US benefits (% of salary)&lt;/label&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;input id="usBenefits" type="number" value="25" /&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;label&gt;LatAm benefits (% of salary)&lt;/label&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;input id="latamBenefits" type="number" value="20" /&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;label&gt;US time-to-hire (weeks)&lt;/label&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;input id="usTTH" type="number" value="6" /&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;label&gt;LatAm time-to-hire (weeks)&lt;/label&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;input id="latamTTH" type="number" value="3" /&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;label&gt;Annual revenue impact per role (used for CoV)&lt;/label&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;input id="revenueImpact" type="number" value="300000" /&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;!-- RESULTS --&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;div class="grid" style="margin-top: 30px;"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="card"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div&gt;Annual Savings (Total)&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div class="value" id="annualSavings"&gt;$0&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="card"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div&gt;Cost of Vacancy Saved&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div class="value" id="covSaved"&gt;$0&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="card"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div&gt;ROI (%)&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div class="value" id="roi"&gt;0%&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;!-- CHART --&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;div style="margin-top: 40px;"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;canvas id="chart" height="150"&gt;&lt;/canvas&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;!-- BUTTONS --&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;div class="flex"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;button onclick="downloadCSV()"&gt;Download CSV&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;button onclick="window.print()"&gt;Print&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">&lt;script&gt;</span></p>
+<p class="p1"><span class="s1">function calc() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const role = document.getElementById('role').value;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const n = Number(document.getElementById('numHires').value);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const usSalary = Number(document.getElementById('usSalary').value);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const latamSalary = Number(document.getElementById('latamSalary').value);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const usB = (Number(document.getElementById('usBenefits').value) / 100) * usSalary;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const laB = (Number(document.getElementById('latamBenefits').value) / 100) * latamSalary;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const usTTH = Number(document.getElementById('usTTH').value);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const latamTTH = Number(document.getElementById('latamTTH').value);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const revenueImpact = Number(document.getElementById('revenueImpact').value);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const annualSavingsPerRole = (usSalary + usB) - (latamSalary + laB);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const annualSavings = annualSavingsPerRole * n;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const dailyCoV = revenueImpact / 250;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const timeSavedDays = Math.max(0, (usTTH - latamTTH) * 5);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const covSaved = dailyCoV * timeSavedDays * n;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const latamTotalCost = (latamSalary + laB) * n;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const roi = latamTotalCost &gt; 0 ? ((annualSavings + covSaved) / latamTotalCost) * 100 : 0;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>document.getElementById('annualSavings').innerText = "$" + annualSavings.toLocaleString();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>document.getElementById('covSaved').innerText = "$" + covSaved.toLocaleString();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>document.getElementById('roi').innerText = roi.toFixed(1) + "%";</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>updateChart(annualSavings, covSaved, latamTotalCost);</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">let chart;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">function updateChart(a, b, c) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const ctx = document.getElementById('chart').getContext('2d');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>if (chart) chart.destroy();</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>chart = new Chart(ctx, {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>type: 'bar',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>data: {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>labels: ['Annual Savings', 'CoV Saved', 'LatAm Cost'],</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>datasets: [{</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>label: 'USD',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>data: [a, b, c],</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>backgroundColor: ['#4f46e5', '#10b981', '#6b7280']</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}]</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>},</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>options: {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>responsive: true,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>scales: {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>y: { beginAtZero: true }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>});</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">function downloadCSV() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const rows = [</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>["Annual Savings", document.getElementById('annualSavings').innerText],</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>["CoV Saved", document.getElementById('covSaved').innerText],</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>["ROI", document.getElementById('roi').innerText]</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>];</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>let csv = rows.map(r =&gt; r.join(",")).join("\n");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const blob = new Blob([csv], { type: "text/csv" });</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const url = window.URL.createObjectURL(blob);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const a = document.createElement("a");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>a.href = url;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>a.download = "roi_results.csv";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>a.click();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>window.URL.revokeObjectURL(url);</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">document.querySelectorAll("input").forEach(i =&gt; {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>i.addEventListener("input", calc);</span></p>
+<p class="p1"><span class="s1">});</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">calc();</span></p>
+<p class="p1"><span class="s1">&lt;/script&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/body&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/html&gt;</span></p>
+</body>
+</html>
